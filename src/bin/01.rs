@@ -1,7 +1,5 @@
 advent_of_code::solution!(1);
-use regex::Regex;
-
-
+use fancy_regex::Regex;
 
 pub fn part_one(input: &str) -> Option<u32> {
     let mut sum = 0;
@@ -24,8 +22,10 @@ pub fn part_one(input: &str) -> Option<u32> {
     return Some(sum);
 }
 fn convert_written_number_to_u32(num: &str) -> u32 {
-    
-    let result:u32 = match num {
+    if num.parse::<u32>().is_ok() {
+        return num.parse::<u32>().unwrap();
+    };
+    let result: u32 = match num {
         "one" => 1,
         "two" => 2,
         "three" => 3,
@@ -35,43 +35,49 @@ fn convert_written_number_to_u32(num: &str) -> u32 {
         "seven" => 7,
         "eight" => 8,
         "nine" => 9,
-        _ => {
-            return num.parse::<u32>().unwrap()
-        }
+        _ => return 0,
     };
     result
 }
+
+
+fn get_first_and_last_char(line: &str) -> Option<(&str,&str)> {
+    let pattern = Regex::new(r"(?=(\d|one|two|three|four|five|six|seven|eight|nine))").unwrap();
+    //let digits = pattern.find(input);
+    let mut digits = pattern.captures_iter(line);
+    let first_char = match digits.next() {
+        Some(first_char) => first_char.unwrap(),
+        None => return None,
+    }.get(0).unwrap().as_str();
+
+    //let last_char = digits.last();
+    let last_char = match digits.last() {
+        Some(last_char) => last_char.unwrap(),
+        None => return None,
+    }
+    .get(0).unwrap().as_str();
+    return Some((first_char, last_char));
+}
+
 pub fn part_two(input: &str) -> Option<u64> {
     let mut sum = 0;
-    let pattern = Regex::new(r"\d|one|two|three|four|five|six|seven|eight|nine").unwrap();
-    
+
     for line in input.lines() {
-        //let digits = pattern.find(input);
-        let mut digits = pattern.find_iter(line);
-        let first_char = match digits.next() {
-            Some(first_char) => first_char,
-            None => continue
+        let (first_char, last_char) = match get_first_and_last_char(line){
+            Some(items) => items,
+            None => return None
         };
-        //let last_char = digits.last();
-        let last_char = match digits.last() {
-            Some(last_char) => last_char,
-            None => continue
-        };
-        let first = convert_written_number_to_u32(first_char.as_str());
-        let last = convert_written_number_to_u32(last_char.as_str());
+
+        let first = convert_written_number_to_u32(first_char);
+        let last = convert_written_number_to_u32(last_char);
         let num_string: String = format!("{}{}", first, last);
-            match num_string.parse::<u64>() {
-                Ok(num) => sum += num,
-                Err(_) => continue,
-            };
-
-        }
-        return Some(sum);        
+        match num_string.parse::<u64>() {
+            Ok(num) => sum += num,
+            Err(_) => continue,
+        };
+    }
+    return Some(sum);
 }
-    
-
-
-
 
 #[cfg(test)]
 mod tests {
@@ -89,6 +95,4 @@ mod tests {
         let result = part_two(&advent_of_code::template::read_file("examples", DAY)).unwrap();
         assert_eq!(result, 88);
     }
-
-    
 }
